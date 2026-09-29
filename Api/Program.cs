@@ -20,6 +20,27 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Migrations and Seeder
+{
+    using var scope = app.Services.CreateScope();
+
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    var seedLogger = services.GetRequiredService<ILogger<DataSeeder>>();
+
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        await context.Database.MigrateAsync();
+        await DataSeeder.SeedAsync(context, seedLogger);
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Error durante la inicialización de la base de datos");
+        throw;
+    }
+}
+
 // Security
 app.UseHttpsRedirection();
 
