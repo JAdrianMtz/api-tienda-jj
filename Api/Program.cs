@@ -1,3 +1,4 @@
+using Api.Extensions;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -5,12 +6,20 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Framework Services
+builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer("name=DefaultConnection")
 );
+
+// CORS
+string[] allowedOrigins =
+    builder.Configuration
+        .GetSection("AllowedOrigins")
+        .Get<string[]>() ?? [];
+builder.Services.ConfigureCors(allowedOrigins);
 
 var app = builder.Build();
 
@@ -43,5 +52,9 @@ if (app.Environment.IsDevelopment())
 
 // Security
 app.UseHttpsRedirection();
+app.UseCors("DefaultPolicy");
+
+// Endpoints
+app.MapControllers();
 
 app.Run();
