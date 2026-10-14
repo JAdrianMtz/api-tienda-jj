@@ -21,7 +21,7 @@ string[] allowedOrigins =
         .Get<string[]>() ?? [];
 builder.Services.ConfigureCors(allowedOrigins);
 
-// Repositories
+// Application Services
 builder.Services.AddApplicationServices();
 
 var app = builder.Build();

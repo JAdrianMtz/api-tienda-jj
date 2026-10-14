@@ -7,11 +7,11 @@ namespace Api.Controllers
 {
     public class ProductsController : BaseApiController
     {
-        private readonly IProductRepository _repository;
+        private readonly IUnitOfWork _unitOfWork;
 
-        public ProductsController(IProductRepository repository)
+        public ProductsController(IUnitOfWork unitOfWork)
         {
-            _repository = repository;
+            _unitOfWork = unitOfWork;
         }
 
         [HttpGet]
@@ -19,7 +19,7 @@ namespace Api.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
         {
-            var products = await _repository.GetAllAsync();
+            var products = await _unitOfWork.Products.GetAllAsync();
             return Ok(products);
         }
 
@@ -29,13 +29,70 @@ namespace Api.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<ActionResult<Product>> GetProductById(int id)
         {
-            var product = await _repository.GetByIdAsync(id);
+            var product = await _unitOfWork.Products.GetByIdAsync(id);
             if (product is null)
             {
                 return NotFound();
             }
 
             return Ok(product);
+        }
+
+        [HttpPost]
+        [ProducesResponseType(StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        public async Task<ActionResult<Product>> CreateProduct(Product product)
+        {
+            if (product is null)
+            {
+                return BadRequest();
+            }
+
+            _unitOfWork.Products.Add(product);
+            await _unitOfWork.SaveAsync();
+
+            return CreatedAtAction(nameof(GetProductById), new {id = product.Id}, product);
+        }
+
+        [HttpPut("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        {
+            if (product is null)
+            {
+                return BadRequest();
+            }
+
+            var productExists = await _unitOfWork.Products.GetByIdAsync(id);
+            if (productExists is null)
+            {
+                return NotFound();
+            }
+
+            _unitOfWork.Products.Update(product);
+            await _unitOfWork.SaveAsync();
+
+            return NoContent();
+        }
+
+        [HttpDelete("{id:int}")]
+        [ProducesResponseType(StatusCodes.Status204NoContent)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> DeleteProduct(int id)
+        {
+            var product = await _unitOfWork.Products.GetByIdAsync(id);
+            if (product is null)
+            {
+                return NotFound();
+            }
+
+            _unitOfWork.Products.Remove(product);
+            await _unitOfWork.SaveAsync();
+
+            return NoContent();
         }
     }
 }
