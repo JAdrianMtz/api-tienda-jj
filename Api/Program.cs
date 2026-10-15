@@ -1,4 +1,5 @@
 using Api.Extensions;
+using AutoMapper.Internal;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -19,10 +20,13 @@ string[] allowedOrigins =
     builder.Configuration
         .GetSection("AllowedOrigins")
         .Get<string[]>() ?? [];
-builder.Services.ConfigureCors(allowedOrigins);
+builder.Services.AddApplicationCors(allowedOrigins);
 
-// Application Services
-builder.Services.AddApplicationServices();
+// External libraries
+builder.Services.AddApplicationAutoMapper();
+
+// Repositories
+builder.Services.AddApplicationRepositories();
 
 var app = builder.Build();
 

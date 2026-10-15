@@ -1,4 +1,5 @@
-﻿using Core.Interfaces;
+﻿using AutoMapper.Internal;
+using Core.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.UnitOfWork;
 
@@ -6,7 +7,7 @@ namespace Api.Extensions;
 
 public static class ApplicationServiceExtensions
 {
-    public static void ConfigureCors(this IServiceCollection services, string[] allowedOrigins)
+    public static void AddApplicationCors(this IServiceCollection services, string[] allowedOrigins)
     {
         services.AddCors(options =>
         {
@@ -18,12 +19,24 @@ public static class ApplicationServiceExtensions
         });
     }
 
-    public static void AddApplicationServices(this IServiceCollection services)
+    public static void AddApplicationRepositories(this IServiceCollection services)
     {
         //services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         //services.AddScoped<IBrandRepository, BrandRepository>();
         //services.AddScoped<ICategoryRepository, CategoryRepository>();
         //services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+    }
+
+    public static void AddApplicationAutoMapper(this IServiceCollection services)
+    {
+        services.AddAutoMapper(config =>
+        {
+            config.AddMaps(typeof(Program));
+            config.Internal().ForAllMaps((typeMap, expression) =>
+            {
+                expression.MaxDepth(32);
+            });
+        });
     }
 }
