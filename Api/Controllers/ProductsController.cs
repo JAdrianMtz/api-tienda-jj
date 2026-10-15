@@ -1,4 +1,6 @@
-﻿using Core.Entities;
+﻿using Api.Dtos;
+using AutoMapper;
+using Core.Entities;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -8,26 +10,29 @@ namespace Api.Controllers
     public class ProductsController : BaseApiController
     {
         private readonly IUnitOfWork _unitOfWork;
+        private readonly IMapper _mapper;
 
-        public ProductsController(IUnitOfWork unitOfWork)
+        public ProductsController(IUnitOfWork unitOfWork, IMapper mapper)
         {
             _unitOfWork = unitOfWork;
+            _mapper = mapper;
         }
 
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<IEnumerable<Product>>> GetProducts()
+        public async Task<ActionResult<IEnumerable<ProductListDto>>> GetProducts()
         {
             var products = await _unitOfWork.Products.GetAllAsync();
-            return Ok(products);
+            var productsDto = _mapper.Map<IEnumerable<ProductListDto>>(products);
+            return Ok(productsDto);
         }
 
         [HttpGet("{id:int}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Product>> GetProductById(int id)
+        public async Task<ActionResult<ProductDto>> GetProductById(int id)
         {
             var product = await _unitOfWork.Products.GetByIdAsync(id);
             if (product is null)
@@ -35,43 +40,46 @@ namespace Api.Controllers
                 return NotFound();
             }
 
-            return Ok(product);
+            var productDto = _mapper.Map<ProductDto>(product);
+            return Ok(productDto);
         }
 
         [HttpPost]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<ActionResult<Product>> CreateProduct(Product product)
+        public async Task<ActionResult<ProductListDto>> CreateProduct(ProductCreateDto productCreateDto)
         {
-            if (product is null)
+            if (productCreateDto is null)
             {
                 return BadRequest();
             }
 
+            var product = _mapper.Map<Product>(productCreateDto);
             _unitOfWork.Products.Add(product);
             await _unitOfWork.SaveAsync();
+            var productResponse = _mapper.Map<ProductListDto>(product);
 
-            return CreatedAtAction(nameof(GetProductById), new {id = product.Id}, product);
+            return CreatedAtAction(nameof(GetProductById), new { id = product.Id }, productResponse);
         }
 
         [HttpPut("{id:int}")]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateProduct(int id, Product product)
+        public async Task<IActionResult> UpdateProduct(int id, ProductUpdateDto productUpdateDto)
         {
-            if (product is null)
+            if (productUpdateDto is null)
             {
                 return BadRequest();
             }
 
-            var productExists = await _unitOfWork.Products.GetByIdAsync(id);
-            if (productExists is null)
+            var product = await _unitOfWork.Products.GetByIdAsync(id);
+            if (product is null)
             {
                 return NotFound();
             }
 
-            _unitOfWork.Products.Update(product);
+            _mapper.Map(productUpdateDto, product);
             await _unitOfWork.SaveAsync();
 
             return NoContent();

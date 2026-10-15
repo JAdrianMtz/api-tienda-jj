@@ -21,4 +21,19 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .Take(quantity)
             .ToListAsync();
     }
+
+    public override async Task<Product?> GetByIdAsync(int id)
+    {
+        return await _context.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .FirstOrDefaultAsync(p => p.Id == id);
+
+    }
+
+    public override void Add(Product product)
+    {
+        product.CreatedAt = DateTime.UtcNow;
+        base.Add(product);
+    }
 }
