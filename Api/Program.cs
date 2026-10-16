@@ -1,4 +1,5 @@
 using Api.Extensions;
+using AspNetCoreRateLimit;
 using AutoMapper.Internal;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ builder.Services.AddApplicationCors(allowedOrigins);
 
 // External libraries
 builder.Services.AddApplicationAutoMapper();
+builder.Services.AddRateLimitingConfiguration();
 
 // Repositories
 builder.Services.AddApplicationRepositories();
@@ -59,6 +61,7 @@ if (app.Environment.IsDevelopment())
 
 // Security
 app.UseHttpsRedirection();
+app.UseIpRateLimiting();
 app.UseCors("DefaultPolicy");
 
 // Endpoints

@@ -1,4 +1,5 @@
-﻿using AutoMapper.Internal;
+﻿using AspNetCoreRateLimit;
+using AutoMapper.Internal;
 using Core.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.UnitOfWork;
@@ -37,6 +38,33 @@ public static class ApplicationServiceExtensions
             {
                 expression.MaxDepth(32);
             });
+        });
+    }
+
+    public static void AddRateLimitingConfiguration(this IServiceCollection services)
+    {
+        services.AddMemoryCache();
+        services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+        services.AddInMemoryRateLimiting();
+
+        services.Configure<IpRateLimitOptions>(options =>
+        {
+            options.EnableEndpointRateLimiting = true;
+            options.StackBlockedRequests = false;
+            options.HttpStatusCode = 429;
+
+            options.QuotaExceededMessage =
+                "Has excedido el límite de solicitudes. Intenta más tarde.";
+
+            options.GeneralRules = new List<RateLimitRule>
+            {
+                new RateLimitRule
+                {
+                    Endpoint = "*",
+                    Period = "10s",
+                    Limit = 5
+                }
+            };
         });
     }
 }
