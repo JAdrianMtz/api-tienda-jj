@@ -22,6 +22,14 @@ public class ProductRepository : GenericRepository<Product>, IProductRepository
             .ToListAsync();
     }
 
+    public async override Task<IEnumerable<Product>> GetAllAsync()
+    {
+        return await _context.Products
+            .Include(p => p.Brand)
+            .Include(p => p.Category)
+            .ToListAsync();
+    }
+
     public override async Task<Product?> GetByIdAsync(int id)
     {
         return await _context.Products

@@ -23,9 +23,12 @@ string[] allowedOrigins =
         .Get<string[]>() ?? [];
 builder.Services.AddApplicationCors(allowedOrigins);
 
+// Versioning
+builder.Services.AddApplicationApiVersioning();
+
 // External libraries
 builder.Services.AddApplicationAutoMapper();
-builder.Services.AddRateLimitingConfiguration();
+builder.Services.AddApplicationRateLimiting();
 
 // Repositories
 builder.Services.AddApplicationRepositories();

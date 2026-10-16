@@ -1,4 +1,5 @@
-﻿using AspNetCoreRateLimit;
+﻿using Asp.Versioning;
+using AspNetCoreRateLimit;
 using AutoMapper.Internal;
 using Core.Interfaces;
 using Infrastructure.Repositories;
@@ -41,7 +42,7 @@ public static class ApplicationServiceExtensions
         });
     }
 
-    public static void AddRateLimitingConfiguration(this IServiceCollection services)
+    public static void AddApplicationRateLimiting(this IServiceCollection services)
     {
         services.AddMemoryCache();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
@@ -66,5 +67,27 @@ public static class ApplicationServiceExtensions
                 }
             };
         });
+    }
+
+    public static void AddApplicationApiVersioning(this IServiceCollection services)
+    {
+        services.AddApiVersioning(options =>
+        {
+            options.DefaultApiVersion = new ApiVersion(1, 0);
+            options.AssumeDefaultVersionWhenUnspecified = true;
+            options.ReportApiVersions = true;
+            //options.ApiVersionReader = new UrlSegmentApiVersionReader();
+            //options.ApiVersionReader = new QueryStringApiVersionReader("v");
+            //options.ApiVersionReader = new HeaderApiVersionReader("X-Version");
+            options.ApiVersionReader = ApiVersionReader.Combine(
+                new QueryStringApiVersionReader("v"),
+                new HeaderApiVersionReader("X-Version")
+            );
+        }).AddApiExplorer(options =>
+        {
+            options.GroupNameFormat = "'v'V";
+            options.SubstituteApiVersionInUrl = true;
+        });
+
     }
 }
