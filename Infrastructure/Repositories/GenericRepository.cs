@@ -1,4 +1,5 @@
-﻿using Core.Entities;
+﻿using Api.Extensions;
+using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -21,6 +22,21 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
     public virtual async Task<IEnumerable<T>> GetAllAsync()
     {
         return await _context.Set<T>().ToListAsync();
+    }
+
+    public virtual async Task<(int recordsCount, IEnumerable<T> records)> GetAllAsync(
+        int pageNumber, int pageSize)
+    {
+        var queryable = _context.Set<T>().AsQueryable();
+        var recordsCount = await queryable.CountAsync();
+
+        var records = await queryable
+            .OrderBy(t => t.Id)
+            .Paginate(pageNumber, pageSize)
+            .ToListAsync();
+
+        return (recordsCount, records);
+
     }
 
     public virtual async Task<T?> GetByIdAsync(int id)
