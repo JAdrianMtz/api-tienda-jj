@@ -16,7 +16,7 @@ public class DataSeeder
         {
             var location = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-            if(!context.Brands.Any()){
+            if(!await context.Brands.AnyAsync()){
                 using (var readerBrands = new StreamReader(location + "/Data/Csv/brands.csv")){
                     using (var csvBrands = new CsvReader(readerBrands, CultureInfo.InvariantCulture)){
                         var brands = csvBrands.GetRecords<Brand>();
@@ -42,7 +42,7 @@ public class DataSeeder
                 }
             }
 
-            if(!context.Categories.Any()){
+            if(!await context.Categories.AnyAsync()){
                 using (var readerCategories = new StreamReader(location + "/Data/Csv/categories.csv")){
                     using (var csvCategories = new CsvReader(readerCategories,CultureInfo.InvariantCulture)){
                         var categories = csvCategories.GetRecords<Category>();
@@ -69,7 +69,7 @@ public class DataSeeder
             }
 
 
-            if(!context.Products.Any()){
+            if(!await context.Products.AnyAsync()){
                 using (var readerProducts = new StreamReader(location + "/Data/Csv/products.csv")){
                     using (var csvProducts = new CsvReader(readerProducts,CultureInfo.InvariantCulture)){
                         var productsCsv = csvProducts.GetRecords<Product>();
@@ -108,6 +108,48 @@ public class DataSeeder
             }
 
 
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex.Message);
+            throw;
+        }
+    }
+
+    public static async Task SeedRolesAsync(ApplicationDbContext context, ILogger<DataSeeder> logger)
+    {
+        try
+        {
+            if (!await context.Roles.AnyAsync())
+            {
+                var roles = new List<Role>()
+                    {
+                        new Role { Id = 1, Name = "Administrador" },
+                        new Role { Id = 2, Name = "Gerente" },
+                        new Role { Id = 3, Name = "Empleado" },
+                    };
+
+                await context.Database.OpenConnectionAsync();
+
+                try
+                {
+                    await context.Database.ExecuteSqlRawAsync(
+                        "SET IDENTITY_INSERT [Roles] ON");
+
+                    context.Roles.AddRange(roles);
+                    await context.SaveChangesAsync();
+                }
+                finally
+                {
+                    await context.Database.ExecuteSqlRawAsync(
+                        "SET IDENTITY_INSERT [Roles] OFF");
+
+                    await context.Database.CloseConnectionAsync();
+                }
+
+                context.Roles.AddRange(roles);
+                await context.SaveChangesAsync();
+            }
         }
         catch (Exception ex)
         {
