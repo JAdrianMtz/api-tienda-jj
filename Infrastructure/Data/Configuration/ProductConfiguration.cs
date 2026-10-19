@@ -19,11 +19,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
             .HasColumnType("decimal(18,2)");
 
         builder.HasOne(p => p.Brand)
-            .WithMany(p => p.Products)
+            .WithMany(b => b.Products)
             .HasForeignKey(p => p.BrandId);
 
         builder.HasOne(p => p.Category)
-            .WithMany(p => p.Products)
+            .WithMany(c => c.Products)
             .HasForeignKey(p => p.CategoryId);
     }
 }

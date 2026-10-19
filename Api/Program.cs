@@ -10,6 +10,8 @@ var builder = WebApplication.CreateBuilder(args);
 // Framework Services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
+builder.Services.AddAuthentication();
+builder.Services.AddAuthorization();
 
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -54,6 +56,7 @@ if (app.Environment.IsDevelopment())
         var context = services.GetRequiredService<ApplicationDbContext>();
         await context.Database.MigrateAsync();
         await DataSeeder.SeedAsync(context, seedLogger);
+        await DataSeeder.SeedRolesAsync(context, seedLogger);
     }
     catch (Exception ex)
     {
@@ -66,6 +69,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseIpRateLimiting();
 app.UseCors("DefaultPolicy");
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 // Endpoints
 app.MapControllers();
