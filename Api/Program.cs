@@ -10,8 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Framework Services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddAuthentication();
+builder.Services.AddApplicationAuthentication(builder.Configuration);
 builder.Services.AddAuthorization();
+
+// Options
+builder.Services.AddApplicationOptions();
 
 // Database
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -32,8 +35,8 @@ builder.Services.AddApplicationApiVersioning();
 builder.Services.AddApplicationAutoMapper();
 builder.Services.AddApplicationRateLimiting();
 
-// Repositories
-builder.Services.AddApplicationRepositories();
+// Application Services
+builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 

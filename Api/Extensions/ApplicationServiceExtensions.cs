@@ -1,9 +1,16 @@
-﻿using Asp.Versioning;
+﻿using Api.Helpers;
+using Api.Services;
+using Asp.Versioning;
 using AspNetCoreRateLimit;
 using AutoMapper.Internal;
+using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Repositories;
 using Infrastructure.UnitOfWork;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace Api.Extensions;
 
@@ -21,13 +28,15 @@ public static class ApplicationServiceExtensions
         });
     }
 
-    public static void AddApplicationRepositories(this IServiceCollection services)
+    public static void AddApplicationServices(this IServiceCollection services)
     {
         //services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         //services.AddScoped<IBrandRepository, BrandRepository>();
         //services.AddScoped<ICategoryRepository, CategoryRepository>();
         //services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IUnitOfWork, UnitOfWork>();
+        services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
     }
 
     public static void AddApplicationAutoMapper(this IServiceCollection services)
@@ -89,5 +98,49 @@ public static class ApplicationServiceExtensions
             options.SubstituteApiVersionInUrl = true;
         });
 
+    }
+
+    public static void AddApplicationOptions(this IServiceCollection services) 
+    {
+        services.AddOptions<JwtSettings>()
+            .BindConfiguration(JwtSettings.Section)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+    }
+
+    public static void AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration)
+    {
+        var jwtSettings = configuration
+            .GetSection(JwtSettings.Section)
+            .Get<JwtSettings>()!;
+
+        services
+            .AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                options.RequireHttpsMetadata = false; // false en desarrollo; true para producción
+                options.UseSecurityTokenValidators = false;
+
+                options.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+
+                    ValidIssuer = jwtSettings.Issuer,
+                    ValidAudience = jwtSettings.Audience,
+
+                    IssuerSigningKey = new SymmetricSecurityKey(
+                        Encoding.UTF8.GetBytes(jwtSettings.SecretKey)
+                    ),
+
+                    ClockSkew = TimeSpan.Zero
+                };
+            });
     }
 }

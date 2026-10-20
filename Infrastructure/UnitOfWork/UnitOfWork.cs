@@ -13,6 +13,8 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     private IBrandRepository _brands = null!;
     private ICategoryRepository _categories = null!;
     private IProductRepository _products = null!;
+    private IUserRepository _users = null!;
+    private IRoleRepository _roles = null!;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -52,6 +54,30 @@ public class UnitOfWork : IUnitOfWork, IDisposable
                 _products = new ProductRepository(_context);
             }
             return _products;
+        }
+    }
+
+    public IUserRepository Users
+    {
+        get
+        {
+            if (_users is null)
+            {
+                _users = new UserRepository(_context);
+            }
+            return _users;
+        }
+    }
+
+    public IRoleRepository Roles
+    {
+        get
+        {
+            if (_roles is null)
+            {
+                _roles = new RoleRepository(_context);
+            }
+            return _roles;
         }
     }
 
