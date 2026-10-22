@@ -146,9 +146,6 @@ public class DataSeeder
 
                     await context.Database.CloseConnectionAsync();
                 }
-
-                context.Roles.AddRange(roles);
-                await context.SaveChangesAsync();
             }
         }
         catch (Exception ex)

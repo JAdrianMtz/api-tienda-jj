@@ -22,11 +22,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 );
 
 // CORS
-string[] allowedOrigins =
-    builder.Configuration
-        .GetSection("AllowedOrigins")
-        .Get<string[]>() ?? [];
-builder.Services.AddApplicationCors(allowedOrigins);
+builder.Services.AddApplicationCors(builder.Configuration);
 
 // Versioning
 builder.Services.AddApplicationApiVersioning();

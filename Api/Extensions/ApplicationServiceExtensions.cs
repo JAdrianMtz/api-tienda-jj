@@ -16,8 +16,12 @@ namespace Api.Extensions;
 
 public static class ApplicationServiceExtensions
 {
-    public static void AddApplicationCors(this IServiceCollection services, string[] allowedOrigins)
+    public static void AddApplicationCors(this IServiceCollection services, IConfiguration configuration)
     {
+        var allowedOrigins = configuration
+            .GetSection("AllowedOrigins")
+            .Get<string[]>() ?? [];
+
         services.AddCors(options =>
         {
             options.AddPolicy("DefaultPolicy", builder =>
