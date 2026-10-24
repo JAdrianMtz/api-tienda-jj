@@ -10,6 +10,8 @@ using Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 
 namespace Api.Extensions;
@@ -126,6 +128,7 @@ public static class ApplicationServiceExtensions
             })
             .AddJwtBearer(options =>
             {
+                options.MapInboundClaims = false;
                 options.RequireHttpsMetadata = false; // false en desarrollo; true para producción
                 options.UseSecurityTokenValidators = false;
 
@@ -143,7 +146,10 @@ public static class ApplicationServiceExtensions
                         Encoding.UTF8.GetBytes(jwtSettings.SecretKey)
                     ),
 
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.Zero,
+                    
+                    NameClaimType = JwtRegisteredClaimNames.Name,
+                    RoleClaimType = ClaimTypes.Role
                 };
             });
     }

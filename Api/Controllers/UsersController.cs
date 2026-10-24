@@ -15,8 +15,16 @@ public class UsersController : BaseApiController
     }
 
     [HttpPost("register")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<ActionResult> RegisterAsync(UserRegisterDto userRegisterDto)
     {
+        if (userRegisterDto is null)
+        {
+            return BadRequest();
+        }
+
         var result = await _userService.RegisterAsync(userRegisterDto);
         if (result.Succeeded)
         {
@@ -44,5 +52,25 @@ public class UsersController : BaseApiController
             _ => Problem(
                 statusCode: StatusCodes.Status500InternalServerError)
         };
+    }
+
+    [HttpPost("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponseDto>> LoginAsync(UserLoginDto userLoginDto) 
+    { 
+        if (userLoginDto is null)
+        {
+            return BadRequest();
+        }
+
+        var loginResult = await _userService.LoginAsync(userLoginDto);
+        if (loginResult is null)
+        {
+            return Unauthorized(new { message = "Credenciales incorretas" });
+        }
+
+        return loginResult;
     }
 }

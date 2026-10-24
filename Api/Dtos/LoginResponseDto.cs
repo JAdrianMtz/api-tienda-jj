@@ -1,0 +1,7 @@
+﻿namespace Api.Dtos;
+
+public class LoginResponseDto
+{
+    public required string AccessToken { get; set; }
+    public DateTime ExpiresAtUtc { get; set; }
+}

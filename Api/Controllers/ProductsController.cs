@@ -1,13 +1,17 @@
 ﻿using Api.Dtos;
 using Api.Dtos.Common;
+using Asp.Versioning;
 using AutoMapper;
 using Core.Entities;
 using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Controllers
 {
+    [ApiVersion("1.0")]
+    [Authorize(Roles = "Administrador,Empleado")]
     public class ProductsController : BaseApiController
     {
         private readonly IUnitOfWork _unitOfWork;
@@ -20,6 +24,7 @@ namespace Api.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<PagedResponse<ProductListDto>>> GetProducts([FromQuery] PaginationDTO paginationDTO)
@@ -37,6 +42,7 @@ namespace Api.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [AllowAnonymous]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

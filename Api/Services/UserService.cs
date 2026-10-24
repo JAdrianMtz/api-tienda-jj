@@ -8,6 +8,11 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.IdentityModel.Tokens;
+using JwtClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
+using System.Security.Claims;
+using System.Text;
 
 namespace Api.Services;
 
@@ -37,7 +42,7 @@ public class UserService : IUserService
         }
 
         var defaultRole = _unitOfWork.Roles
-            .Find(r => r.Name == nameof(AppRoles.DefaultRole))
+            .Find(r => r.Name == AppRoles.DefaultRole.ToString())
             .FirstOrDefault();
 
         if (defaultRole is null)
@@ -47,7 +52,8 @@ public class UserService : IUserService
                 RegisterError.DefaultRoleNotFound);
         }
 
-        var user = new User {
+        var user = new User 
+        {
             Name = userRegisterDto.Name,
             LastName = userRegisterDto.LastName,
             Username = userRegisterDto.Username,
@@ -55,7 +61,8 @@ public class UserService : IUserService
         };
         user.Password = _passwordHasher.HashPassword(user, userRegisterDto.Password);
 
-        var userRole = new UserRoles {
+        var userRole = new UserRoles 
+        {
             User = user,
             RoleId = defaultRole.Id,
         };
@@ -83,6 +90,63 @@ public class UserService : IUserService
                 false,
                 RegisterError.UsernameAlreadyExists);
         }
+    }
+
+    public async Task<LoginResponseDto?> LoginAsync(UserLoginDto userLoginDto)
+    {
+        var user = await _unitOfWork.Users
+            .GetByUsernameAsync(userLoginDto.Username);
+        if (user is null)
+            return null;
+
+        var verifyPassword = _passwordHasher.VerifyHashedPassword(user, user.Password, userLoginDto.Password);
+        if (verifyPassword == PasswordVerificationResult.Failed)
+            return null;
+
+        return await BuildToken(user);
+    }
+
+    private async Task<LoginResponseDto> BuildToken(User user)
+    {
+        var claims = new List<Claim>
+        {
+            // Id del usuario
+            new Claim(JwtClaimNames.Sub, user.Id.ToString()),
+    
+            // Datos de identidad
+            new Claim(JwtClaimNames.Name, user.Username),
+            new Claim(JwtClaimNames.Email, user.Email),
+            new Claim(JwtClaimNames.Jti, Guid.NewGuid().ToString()), // ID del token
+        };
+
+        claims.AddRange(
+            user.Roles.Select(role =>
+                new Claim(ClaimTypes.Role, role.Name)
+            )
+        );
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
+        var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+        var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
+
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Issuer = _jwtSettings.Issuer,
+            Audience = _jwtSettings.Audience,
+            Subject = new ClaimsIdentity(claims),
+            Expires = expiration,
+            SigningCredentials = credentials
+        };
+
+        var tokenHandler = new JsonWebTokenHandler();
+        var token = new JsonWebTokenHandler().CreateToken(tokenDescriptor);
+
+        return new LoginResponseDto
+        {
+            AccessToken = token,
+            ExpiresAtUtc = expiration
+        };
     }
 
     private static bool IsUniqueConstraintViolation(
