@@ -13,6 +13,7 @@ using Microsoft.IdentityModel.Tokens;
 using JwtClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
 using System.Security.Claims;
 using System.Text;
+using System.Security.Cryptography;
 
 namespace Api.Services;
 
@@ -103,8 +104,25 @@ public class UserService : IUserService
         if (verifyPassword == PasswordVerificationResult.Failed)
             return null;
 
-        return await BuildToken(user);
+        var loginResponse = await BuildToken(user);
+        var refreshToken = CreateRefreshToken();
+        loginResponse.RefreshToken = refreshToken.TokenHash;
+        loginResponse.RefreshTokenExpiresAtUtc = refreshToken.ExpiresAtUtc;
+
+        // TODO: Aplicar hash al RefreshToken antes de guardar en la BD
+
+        user.RefreshTokens.Add(refreshToken);
+        _unitOfWork.Users.Update(user);
+        await _unitOfWork.SaveAsync();
+        
+        return loginResponse;
     }
+
+    // TODO: Agregar acción para refrescar token cuando el JWT ha expirado
+
+    // TODO: Implementar el cierre de sesión y la revocación del refresh token.
+
+    
 
     private async Task<LoginResponseDto> BuildToken(User user)
     {
@@ -128,7 +146,7 @@ public class UserService : IUserService
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.SecretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-        var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.ExpirationInMinutes);
+        var expiration = DateTime.UtcNow.AddMinutes(_jwtSettings.AccessTokenExpirationMinutes);
 
         var tokenDescriptor = new SecurityTokenDescriptor
         {
@@ -155,4 +173,22 @@ public class UserService : IUserService
         return exception.GetBaseException() is SqlException sqlException
             && sqlException.Number is 2601 or 2627;
     }
+
+    private RefreshToken CreateRefreshToken()
+    {
+        var randomNumber = new byte[32];
+        using (var generator = RandomNumberGenerator.Create())
+        {
+            generator.GetBytes(randomNumber);
+            var utcNow = DateTime.UtcNow;
+            return new RefreshToken
+            {
+                TokenHash = Convert.ToBase64String(randomNumber),
+                CreatedAtUtc = utcNow,
+                ExpiresAtUtc = utcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
+            };
+        }
+    }
+
+    // TODO: Agregar función para aplicar hash al RefreshToken
 }

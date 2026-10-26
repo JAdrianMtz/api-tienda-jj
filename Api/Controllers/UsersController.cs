@@ -71,6 +71,24 @@ public class UsersController : BaseApiController
             return Unauthorized(new { message = "Credenciales incorretas" });
         }
 
+        SetRefreshTokenInCookie(loginResult.RefreshToken, loginResult.RefreshTokenExpiresAtUtc);
         return loginResult;
+    }
+
+    // TODO: Agregar acción para refrescar token cuando el JWT ha expirado
+
+    // TODO: Implementar el cierre de sesión y la revocación del refresh token.
+
+    private void SetRefreshTokenInCookie(string refreshToken, DateTime expirationDate) 
+    {
+        var cookieOptions = new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = true,
+            SameSite = SameSiteMode.Strict,
+            Expires = expirationDate
+        };
+
+        Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
     }
 }
