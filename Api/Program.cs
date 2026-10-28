@@ -34,6 +34,9 @@ builder.Services.AddApplicationRateLimiting();
 // Application Services
 builder.Services.AddApplicationServices();
 
+// Logging
+builder.Logging.AddApplicationSerilog(builder.Configuration);
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
