@@ -9,9 +9,12 @@ namespace Api.Controllers;
 public class UsersController : BaseApiController
 {
     private readonly IUserService _userService;
-    public UsersController(IUserService userService)
+    private readonly IWebHostEnvironment _environment;
+
+    public UsersController(IUserService userService, IWebHostEnvironment environment)
     {
         _userService = userService;
+        _environment = environment;
     }
 
     [HttpPost("register")]
@@ -75,17 +78,51 @@ public class UsersController : BaseApiController
         return loginResult;
     }
 
-    // TODO: Agregar acción para refrescar token cuando el JWT ha expirado
+    [HttpPost("refresh-token")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<ActionResult<LoginResponseDto>> RefreshTokenAsync()
+    {
+        if(!Request.Cookies.TryGetValue("refreshToken", out var cookieToken))
+        {
+            return Unauthorized();
+        }
 
-    // TODO: Implementar el cierre de sesión y la revocación del refresh token.
+        var refreshTokenResponse = await _userService.RefreshTokenAsync(cookieToken);
+        if (refreshTokenResponse is null)
+        {
+            return Unauthorized();
+        }
+
+        SetRefreshTokenInCookie(refreshTokenResponse.RefreshToken, refreshTokenResponse.RefreshTokenExpiresAtUtc);
+        return refreshTokenResponse;
+    }
+
+    [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<ActionResult> LogoutAsync()
+    {
+        if (Request.Cookies.TryGetValue("refreshToken", out var cookieToken))
+        {
+            await _userService.LogoutAsync(cookieToken);
+        }
+
+        Response.Cookies.Delete("refreshToken", new CookieOptions
+        {
+            Path = "/"
+        });
+        
+        return NoContent();
+    }
 
     private void SetRefreshTokenInCookie(string refreshToken, DateTime expirationDate) 
     {
         var cookieOptions = new CookieOptions
         {
             HttpOnly = true,
-            Secure = true,
+            Secure = !_environment.IsDevelopment(),
             SameSite = SameSiteMode.Strict,
+            Path = "/",
             Expires = expirationDate
         };
 

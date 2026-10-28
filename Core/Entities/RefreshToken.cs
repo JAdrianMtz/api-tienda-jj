@@ -9,5 +9,5 @@ public class RefreshToken : BaseEntity
     public required DateTime ExpiresAtUtc { get; set; }
     public bool IsExpired => DateTime.UtcNow >= ExpiresAtUtc;
     public DateTime? RevokedAtUtc { get; set; }
-    public bool IsActive => RevokedAtUtc == null && !IsExpired;
+    public bool IsActive => RevokedAtUtc is null && !IsExpired;
 }

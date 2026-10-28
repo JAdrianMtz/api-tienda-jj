@@ -22,12 +22,14 @@ public class UserService : IUserService
     private readonly IUnitOfWork _unitOfWork;
     private readonly JwtSettings _jwtSettings;
     private readonly IPasswordHasher<User> _passwordHasher;
+    private readonly IRefreshTokenHasher _tokenHasher;
 
-    public UserService(IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettingsOptions, IPasswordHasher<User> passwordHasher)
+    public UserService(IUnitOfWork unitOfWork, IOptions<JwtSettings> jwtSettingsOptions, IPasswordHasher<User> passwordHasher, IRefreshTokenHasher tokenHasher)
     {
         _unitOfWork = unitOfWork;
         _jwtSettings = jwtSettingsOptions.Value;
         _passwordHasher = passwordHasher;
+        _tokenHasher = tokenHasher;
     }
 
     public async Task<RegisterResult> RegisterAsync(UserRegisterDto userRegisterDto)
@@ -60,7 +62,7 @@ public class UserService : IUserService
             Username = userRegisterDto.Username,
             Email = userRegisterDto.Email,
         };
-        user.Password = _passwordHasher.HashPassword(user, userRegisterDto.Password);
+        user.PasswordHash = _passwordHasher.HashPassword(user, userRegisterDto.Password);
 
         var userRole = new UserRoles 
         {
@@ -100,31 +102,61 @@ public class UserService : IUserService
         if (user is null)
             return null;
 
-        var verifyPassword = _passwordHasher.VerifyHashedPassword(user, user.Password, userLoginDto.Password);
+        var verifyPassword = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, userLoginDto.Password);
         if (verifyPassword == PasswordVerificationResult.Failed)
             return null;
 
-        var loginResponse = await BuildToken(user);
-        var refreshToken = CreateRefreshToken();
-        loginResponse.RefreshToken = refreshToken.TokenHash;
+        var (refreshToken, plainToken) = CreateRefreshToken(user.Id);
+
+        var loginResponse = await BuildAccessToken(user);
+        loginResponse.RefreshToken = plainToken;
         loginResponse.RefreshTokenExpiresAtUtc = refreshToken.ExpiresAtUtc;
 
-        // TODO: Aplicar hash al RefreshToken antes de guardar en la BD
-
-        user.RefreshTokens.Add(refreshToken);
-        _unitOfWork.Users.Update(user);
+        _unitOfWork.RefreshTokens.Add(refreshToken);
         await _unitOfWork.SaveAsync();
         
         return loginResponse;
     }
 
-    // TODO: Agregar acción para refrescar token cuando el JWT ha expirado
+    public async Task<LoginResponseDto?> RefreshTokenAsync(string cookieToken)
+    {
+        var tokenHash = _tokenHasher.ComputeHash(cookieToken);
+        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash);
+        if (refreshTokenDb is null || refreshTokenDb.RevokedAtUtc is not null)
+            return null;
 
-    // TODO: Implementar el cierre de sesión y la revocación del refresh token.
+        refreshTokenDb.RevokedAtUtc = DateTime.UtcNow;
+        if (refreshTokenDb.IsExpired)
+        {
+            await _unitOfWork.SaveAsync();
+            return null;
+        }
 
-    
+        var (newRefreshToken, plainToken) = CreateRefreshToken(refreshTokenDb.User.Id);
 
-    private async Task<LoginResponseDto> BuildToken(User user)
+        var loginResponse = await BuildAccessToken(refreshTokenDb.User);
+        loginResponse.RefreshToken = plainToken;
+        loginResponse.RefreshTokenExpiresAtUtc = newRefreshToken.ExpiresAtUtc;
+
+        _unitOfWork.RefreshTokens.Add(newRefreshToken);
+        await _unitOfWork.SaveAsync();
+
+        return loginResponse;
+    }
+
+    public async Task LogoutAsync(string refreshToken)
+    {
+        var tokenHash = _tokenHasher.ComputeHash(refreshToken);
+        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash);
+        if (refreshTokenDb is null || refreshTokenDb.RevokedAtUtc is not null)
+            return;
+
+        refreshTokenDb.RevokedAtUtc = DateTime.UtcNow;
+        await _unitOfWork.SaveAsync();
+    }
+
+
+    private async Task<LoginResponseDto> BuildAccessToken(User user)
     {
         var claims = new List<Claim>
         {
@@ -158,7 +190,7 @@ public class UserService : IUserService
         };
 
         var tokenHandler = new JsonWebTokenHandler();
-        var token = new JsonWebTokenHandler().CreateToken(tokenDescriptor);
+        var token = tokenHandler.CreateToken(tokenDescriptor);
 
         return new LoginResponseDto
         {
@@ -174,21 +206,22 @@ public class UserService : IUserService
             && sqlException.Number is 2601 or 2627;
     }
 
-    private RefreshToken CreateRefreshToken()
+    private (RefreshToken refreshToken, string plainToken) CreateRefreshToken(int userId)
     {
         var randomNumber = new byte[32];
         using (var generator = RandomNumberGenerator.Create())
         {
             generator.GetBytes(randomNumber);
             var utcNow = DateTime.UtcNow;
-            return new RefreshToken
+            var token = Convert.ToBase64String(randomNumber);
+
+            return (new RefreshToken
             {
-                TokenHash = Convert.ToBase64String(randomNumber),
+                UserId = userId,
+                TokenHash = _tokenHasher.ComputeHash(token),
                 CreatedAtUtc = utcNow,
                 ExpiresAtUtc = utcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays)
-            };
+            }, token);
         }
     }
-
-    // TODO: Agregar función para aplicar hash al RefreshToken
 }

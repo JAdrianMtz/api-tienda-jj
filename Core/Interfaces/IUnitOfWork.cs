@@ -11,5 +11,6 @@ public interface IUnitOfWork
     IProductRepository Products { get; }
     IUserRepository Users { get; }
     IRoleRepository Roles { get; }
+    IRefreshTokenRepository RefreshTokens { get; }
     Task<int> SaveAsync();
 }

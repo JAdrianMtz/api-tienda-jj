@@ -15,6 +15,7 @@ public class UnitOfWork : IUnitOfWork, IDisposable
     private IProductRepository _products = null!;
     private IUserRepository _users = null!;
     private IRoleRepository _roles = null!;
+    private IRefreshTokenRepository _refreshTokens = null!;
 
     public UnitOfWork(ApplicationDbContext context)
     {
@@ -78,6 +79,18 @@ public class UnitOfWork : IUnitOfWork, IDisposable
                 _roles = new RoleRepository(_context);
             }
             return _roles;
+        }
+    }
+
+    public IRefreshTokenRepository RefreshTokens
+    {
+        get
+        {
+            if (_refreshTokens is null)
+            {
+                _refreshTokens = new RefreshTokenRepository(_context);
+            }
+            return _refreshTokens;
         }
     }
 
