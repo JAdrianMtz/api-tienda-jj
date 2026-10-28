@@ -10,7 +10,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Framework Services
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddApplicationAuthentication(builder.Configuration);
+builder.Services.AddApplicationAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddAuthorization();
 
 // Options

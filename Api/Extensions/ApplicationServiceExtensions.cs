@@ -6,6 +6,7 @@ using AutoMapper.Internal;
 using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Repositories;
+using Infrastructure.Security;
 using Infrastructure.UnitOfWork;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
@@ -43,6 +44,7 @@ public static class ApplicationServiceExtensions
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+        services.AddSingleton<IRefreshTokenHasher, RefreshTokenHasher>();
     }
 
     public static void AddApplicationAutoMapper(this IServiceCollection services)
@@ -114,7 +116,7 @@ public static class ApplicationServiceExtensions
             .ValidateOnStart();
     }
 
-    public static void AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration)
+    public static void AddApplicationAuthentication(this IServiceCollection services, IConfiguration configuration, IWebHostEnvironment environment)
     {
         var jwtSettings = configuration
             .GetSection(JwtSettings.Section)
@@ -129,7 +131,7 @@ public static class ApplicationServiceExtensions
             .AddJwtBearer(options =>
             {
                 options.MapInboundClaims = false;
-                options.RequireHttpsMetadata = false; // false en desarrollo; true para producción
+                options.RequireHttpsMetadata = !environment.IsDevelopment(); // false en desarrollo; true para producción
                 options.UseSecurityTokenValidators = false;
 
                 options.TokenValidationParameters = new TokenValidationParameters
