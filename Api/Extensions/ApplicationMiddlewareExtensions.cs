@@ -1,4 +1,5 @@
-﻿using Api.Middlewares;
+﻿using Api.Helpers;
+using Api.Middlewares;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Api.Extensions;
@@ -18,7 +19,7 @@ public static class ApplicationMiddlewareExtensions
             var problemDetails = new ProblemDetails
             {
                 Status = response.StatusCode,
-                Title = GetStatusCodeTitle(response.StatusCode)
+                Title = StatusCodeTitles.GetTitle(response.StatusCode)
             };
 
             await Results.Problem(problemDetails)
@@ -26,19 +27,5 @@ public static class ApplicationMiddlewareExtensions
         });
 
         return app;
-    }
-
-    private static string GetStatusCodeTitle(int statusCode)
-    {
-        return statusCode switch
-        {
-            400 => "Petición incorrecta",
-            401 => "No autenticado",
-            403 => "Acceso prohibido",
-            404 => "Recurso no encontrado",
-            405 => "Método no permitido",
-            409 => "Conflicto",
-            _ => "Error en la solicitud"
-        };
     }
 }

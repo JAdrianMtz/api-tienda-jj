@@ -155,4 +155,17 @@ public static class ApplicationServiceExtensions
                 };
             });
     }
+
+    public static void AddApplicationControllers(this IServiceCollection services)
+    {
+        services.AddControllers()
+            .ConfigureApiBehaviorOptions(options =>
+            {
+                foreach (var statusCode in StatusCodeTitles.StatusCodes)
+                {
+                    options.ClientErrorMapping[statusCode].Title =
+                        StatusCodeTitles.GetTitle(statusCode);
+                }
+            });
+    }
 }
