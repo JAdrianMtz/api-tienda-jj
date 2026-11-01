@@ -7,5 +7,5 @@ namespace Core.Interfaces;
 
 public interface IProductRepository : IGenericRepository<Product>
 {
-    Task<IEnumerable<Product>> GetMostExpensiveProducts(int quantity);
+    Task<IEnumerable<Product>> GetMostExpensiveProducts(int quantity, bool noTracking = true);
 }

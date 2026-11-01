@@ -44,8 +44,8 @@ public class UserService : IUserService
                 RegisterError.UsernameAlreadyExists);
         }
 
-        var defaultRole = _unitOfWork.Roles
-            .Find(r => r.Name == AppRoles.DefaultRole.ToString())
+        var defaultRole = (await _unitOfWork.Roles
+            .FindAsync(r => r.Name == AppRoles.DefaultRole.ToString()))
             .FirstOrDefault();
 
         if (defaultRole is null)
@@ -108,7 +108,7 @@ public class UserService : IUserService
 
         var (refreshToken, plainToken) = CreateRefreshToken(user.Id);
 
-        var loginResponse = await BuildAccessToken(user);
+        var loginResponse = BuildAccessToken(user);
         loginResponse.RefreshToken = plainToken;
         loginResponse.RefreshTokenExpiresAtUtc = refreshToken.ExpiresAtUtc;
 
@@ -121,7 +121,7 @@ public class UserService : IUserService
     public async Task<LoginResponseDto?> RefreshTokenAsync(string cookieToken)
     {
         var tokenHash = _tokenHasher.ComputeHash(cookieToken);
-        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash);
+        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash, noTracking: false);
         if (refreshTokenDb is null || refreshTokenDb.RevokedAtUtc is not null)
             return null;
 
@@ -134,7 +134,7 @@ public class UserService : IUserService
 
         var (newRefreshToken, plainToken) = CreateRefreshToken(refreshTokenDb.User.Id);
 
-        var loginResponse = await BuildAccessToken(refreshTokenDb.User);
+        var loginResponse = BuildAccessToken(refreshTokenDb.User);
         loginResponse.RefreshToken = plainToken;
         loginResponse.RefreshTokenExpiresAtUtc = newRefreshToken.ExpiresAtUtc;
 
@@ -147,7 +147,7 @@ public class UserService : IUserService
     public async Task LogoutAsync(string refreshToken)
     {
         var tokenHash = _tokenHasher.ComputeHash(refreshToken);
-        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash);
+        var refreshTokenDb = await _unitOfWork.RefreshTokens.GetByTokenHashAsync(tokenHash, noTracking: false);
         if (refreshTokenDb is null || refreshTokenDb.RevokedAtUtc is not null)
             return;
 
@@ -156,7 +156,7 @@ public class UserService : IUserService
     }
 
 
-    private async Task<LoginResponseDto> BuildAccessToken(User user)
+    private LoginResponseDto BuildAccessToken(User user)
     {
         var claims = new List<Claim>
         {

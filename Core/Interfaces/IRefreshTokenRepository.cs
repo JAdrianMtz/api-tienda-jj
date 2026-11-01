@@ -4,5 +4,5 @@ namespace Core.Interfaces;
 
 public interface IRefreshTokenRepository : IGenericRepository<RefreshToken>
 {
-    Task<RefreshToken?> GetByTokenHashAsync(string tokenHash);
+    Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, bool noTracking = true);
 }

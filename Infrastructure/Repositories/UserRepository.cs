@@ -14,9 +14,13 @@ public class UserRepository : GenericRepository<User>, IUserRepository
     {
     }
 
-    public async Task<User?> GetByUsernameAsync(string username)
+    public async Task<User?> GetByUsernameAsync(string username, bool noTracking = true)
     {
-        return await _context.Users
+        var queryable = noTracking
+            ? _context.Users.AsNoTracking()
+            : _context.Users;
+
+        return await queryable
             .Include(u => u.Roles)
             .FirstOrDefaultAsync(u => u.Username == username);
     }

@@ -11,9 +11,13 @@ public class RefreshTokenRepository : GenericRepository<RefreshToken>, IRefreshT
     { 
     }
 
-    public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash)
+    public async Task<RefreshToken?> GetByTokenHashAsync(string tokenHash, bool noTracking = true)
     {
-        return await _context.RefreshTokens
+        var queryable = noTracking
+            ? _context.RefreshTokens.AsNoTracking()
+            : _context.RefreshTokens;
+
+        return await queryable
             .Include(rt => rt.User)
             .ThenInclude(u => u.Roles)
             .FirstOrDefaultAsync(rt => rt.TokenHash == tokenHash);

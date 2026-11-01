@@ -19,15 +19,22 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
         _context = context;
     }
 
-    public virtual async Task<IEnumerable<T>> GetAllAsync()
+    public virtual async Task<IEnumerable<T>> GetAllAsync(bool noTracking = true)
     {
-        return await _context.Set<T>().ToListAsync();
+        var queryable = noTracking
+            ? _context.Set<T>().AsNoTracking()
+            : _context.Set<T>();
+
+        return await queryable.ToListAsync();
     }
 
     public virtual async Task<(int recordsCount, IEnumerable<T> records)> GetAllAsync(
-        int pageNumber, int pageSize)
+        int pageNumber, int pageSize, bool noTracking = true)
     {
-        var queryable = _context.Set<T>().AsQueryable();
+        var queryable = noTracking
+            ? _context.Set<T>().AsNoTracking()
+            : _context.Set<T>();
+
         var recordsCount = await queryable.CountAsync();
 
         var records = await queryable
@@ -39,14 +46,24 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
 
     }
 
-    public virtual async Task<T?> GetByIdAsync(int id)
+    public virtual async Task<T?> GetByIdAsync(int id, bool noTracking = true)
     {
-        return await _context.Set<T>().FirstOrDefaultAsync(t => t.Id == id);
+        var queryable = noTracking
+            ? _context.Set<T>().AsNoTracking()
+            : _context.Set<T>();
+
+        return await queryable.FirstOrDefaultAsync(t => t.Id == id);
     }
 
-    public virtual IEnumerable<T> Find(Expression<Func<T, bool>> predicate)
+    public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate, bool noTracking = true)
     {
-        return _context.Set<T>().Where(predicate);
+        var queryable = noTracking
+            ? _context.Set<T>().AsNoTracking()
+            : _context.Set<T>();
+
+        return await queryable
+            .Where(predicate)
+            .ToListAsync();
     }
 
     public virtual void Add(T entity)
