@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Api.Helpers;
+namespace Api.Configuration;
 
 public class JwtSettings
 {

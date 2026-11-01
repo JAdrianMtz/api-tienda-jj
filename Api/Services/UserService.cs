@@ -1,5 +1,4 @@
 ﻿using Api.Dtos;
-using Api.Helpers;
 using Core.Authorization;
 using Core.Entities;
 using Core.Interfaces;
@@ -14,6 +13,7 @@ using JwtClaimNames = System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames;
 using System.Security.Claims;
 using System.Text;
 using System.Security.Cryptography;
+using Api.Configuration;
 
 namespace Api.Services;
 

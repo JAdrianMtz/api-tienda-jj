@@ -1,4 +1,5 @@
-﻿using Api.Helpers;
+﻿using Api.Configuration;
+using Api.Helpers;
 using Api.Services;
 using Asp.Versioning;
 using AspNetCoreRateLimit;
@@ -112,6 +113,11 @@ public static class ApplicationServiceExtensions
     {
         services.AddOptions<JwtSettings>()
             .BindConfiguration(JwtSettings.Section)
+            .ValidateDataAnnotations()
+            .ValidateOnStart();
+
+        services.AddOptions<ScalarSettings>()
+            .BindConfiguration(ScalarSettings.Section)
             .ValidateDataAnnotations()
             .ValidateOnStart();
     }

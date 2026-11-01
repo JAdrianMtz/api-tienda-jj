@@ -1,6 +1,5 @@
 using Api.Extensions;
 using AspNetCoreRateLimit;
-using AutoMapper.Internal;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -9,7 +8,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 // Framework Services
 builder.Services.AddApplicationControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddApplicationOpenApi(builder.Configuration);
+
+// Security
 builder.Services.AddApplicationAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddAuthorization();
 
@@ -44,7 +45,7 @@ app.UseApplicationMiddleware();
 
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseApplicationOpenApi(builder.Configuration);
 }
 
 // Migrations and Seeder
